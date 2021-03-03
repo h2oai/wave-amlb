@@ -1,4 +1,3 @@
-import h2o
 from h2o_wave import Q, ui, app, main, data
 from .config import *
 import time
