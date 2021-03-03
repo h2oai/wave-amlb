@@ -1,4 +1,4 @@
-h2o_wave==0.10.0
+h2o_wave==0.12.1
 numpy
 pandas
 matplotlib
