@@ -207,11 +207,15 @@ def table_from_df(df: pd.DataFrame, table_name: str):
                            'number', 'string')).item()
     ) for x in df.columns.values]
     # Rows for the table
-    rows = [ui.table_row(name=str(i), cells=[cell for cell in row]) for i, row in df.iterrows()] 
+    rows = [ui.table_row(
+        name=str(i), 
+        cells=[cell for cell in row]
+        ) for i, row in df.iterrows()] 
     table = ui.table(name=f'{table_name}',
              rows=rows,
              columns=columns,
-             multiple=False,  # Allow multiple row selection
+             multiple=True, # Hack for not navigating alway when doing 1 click on table
+             downloadable  = True, 
              height='100%')
     return table
 
