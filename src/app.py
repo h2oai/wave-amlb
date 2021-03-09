@@ -77,9 +77,13 @@ async def main_menu(q: Q):
     await q.page.save()
 
 # menu for importing new results csv on import data
+
+
 async def import_menu(q: Q):
+    q.args['#'] = 'import'
     q.page['main'] = ui.form_card(box=app_config.main_box, items=[
         ui.text_xl('Import Data'),
+        # ui.message_bar(type='warning', text=warning),
         ui.file_upload(name='uploaded_file', label='Click to upload selected files!', file_extensions=['csv'],
         multiple=False),
     ])
@@ -150,6 +154,20 @@ async def parameters_selection_menu(q: Q, warning: str = ''):
             local_path = await q.site.download(uploaded_files_dict[q.app.results_file][0], '.')
         # creates a pandas df out of that file 
         q.app.results_df = pd.read_csv(local_path)
+    
+    # if they didn't upload a results csv file send them to import data
+    if not {'framework', 'constraint', 'mode', 'task'}.issubset(q.app.results_df.columns):
+        q.page['meta'] = ui.meta_card(box ='')
+        q.page['main'] = ui.markdown_card(box=app_config.main_box, title ='Incorrect Results CSV',
+                                          content='This file does not match the results.csv format. Please upload another file'
+        )
+        await q.page.save()
+        time.sleep(10)
+        q.page['meta'].redirect = '#import'
+        # await import_menu(q, 'This file does not match the results.csv format. Please upload another file')
+        return
+
+
 
     # choices based on the results csv uploaded
     framework_choices = [ui.choice(i, i) for i in list(q.app.results_df['framework'].unique())]
@@ -463,6 +481,7 @@ async def clean_cards(q: Q):
 def get_image_from_matplotlib(matplotlib_obj):
     buffer = io.BytesIO()
     # buffer is an in-memory object that can be used wherever a file is used. 
+    matplotlib_obj.tight_layout()
     matplotlib_obj.savefig(buffer, format="png")
     buffer.seek(0)
     return base64.b64encode(buffer.read()).decode("utf-8")
