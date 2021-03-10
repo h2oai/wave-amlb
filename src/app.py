@@ -73,17 +73,39 @@ async def main_menu(q: Q):
     # Logo
     if not q.app.logo_url:
         q.app.logo_url, = await q.site.upload([logo_file])
-    q.page['main'] = ui.form_card(box=app_config.main_box, items=app_config.items_guide_tab)
+    q.page['main'] = ui.form_card(box=app_config.main_box, 
+    items=[
+        # app_config.items_guide_tab,
+        ui.text("""<center><img width="650" height="300" src="https://i0.wp.com/blog.okfn.org/files/2017/12/openml-logo.png?fit=1175%2C537&ssl=1"></center>"""),
+        ui.text("""
+This Wave application allows users to visualize their OpenML AutoML Benchmark runs via the Wave UI. 
+
+References: 
+- https://openml.github.io/automlbenchmark/
+- https://github.com/openml/automlbenchmark
+            """),
+        ui.text_l("""
+**How to use this app**
+1. Click on the import data tab
+2. On the import data tab, upload a benchmark results csv 
+3. Select the results csv you uploaded
+4. On the parameters selection you can select the parameters for which you would like to evaluate your results 
+5. After selecting your parameters, the app will begin to generate a table and visualizations for you to analyze
+            """)
+
+
+
+    
+    ])
+
     await q.page.save()
 
 # menu for importing new results csv on import data
 
 
 async def import_menu(q: Q):
-    q.args['#'] = 'import'
     q.page['main'] = ui.form_card(box=app_config.main_box, items=[
         ui.text_xl('Import Data'),
-        # ui.message_bar(type='warning', text=warning),
         ui.file_upload(name='uploaded_file', label='Click to upload selected files!', file_extensions=['csv'],
         multiple=False),
     ])

@@ -25,8 +25,6 @@ class Configuration:
         self.default_title = ui.text_xl('H2O-3 UI')
         self.items_guide_tab = [
             ui.text("""<center><img width="650" height="300" src="https://i0.wp.com/blog.okfn.org/files/2017/12/openml-logo.png?fit=1175%2C537&ssl=1"></center>"""),
-            # ui.frame(
-            #     content='<h2 style="font-size:15px"><center>OpenML AutoML Benchmark</center></h2>', height='40px'),
             ui.text("""
             
 This Wave application allows users to visualize their OpenML AutoML Benchmark runs via the Wave UI. 
