@@ -1,8 +1,8 @@
 # AutoML Benchmark Wave App
 
-TO DO
+Dashboard to compare AutoML frameworks by exploring the results from runs of the [OpenML AutoML Benchmark](https://github.com/openml/automlbenchmark).
 
-**App Goal:** TO DO
+**App Goal:** View & compare performance of different AutoML frameworks, as benchmarked on the OpenML AutoML Benchmark
 
 **Target Audience:** Data scientists
 
