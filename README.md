@@ -20,8 +20,6 @@ Dashboard to compare AutoML frameworks by exploring the results from runs of the
 
 TO DO
 
-# Wave app for AutoML Benchmark
-
 ## System Requirements 
 1. Python 3.6+
 2. pip3
