@@ -31,7 +31,7 @@ Follow the instructions [here](https://h2oai.github.io/wave/docs/installation) t
 
 ### Setting up Wave for the first time
 
-1. go to [download](https://github.com/h2oai/wave/releases/tag/v0.12.0) the wave SDK for your platform
+1. Go to [download](https://github.com/h2oai/wave/releases/tag/v0.12.0) the wave SDK for your platform
     - Make sure to scroll down on the page to Assets. For MacOs select "darwin".
 ```
 wave-0.12.0-darwin-amd64.tar.gz
