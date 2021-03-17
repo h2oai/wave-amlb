@@ -15,8 +15,8 @@ from report import draw_score_heatmap, draw_score_parallel_coord, draw_score_poi
 from report.config import *
 from report.util import create_file, display
 from report.visualizations.util import register_colormap, render_colormap, savefig
+from report.metadata import load_dataset_metadata
 
-# h2o.init()
 app_config = Configuration()
 
 @app('/')
@@ -101,8 +101,6 @@ References:
     await q.page.save()
 
 # menu for importing new results csv on import data
-
-
 async def import_menu(q: Q):
     q.page['main'] = ui.form_card(box=app_config.main_box, items=[
         ui.text_xl('Import Data'),
@@ -146,19 +144,7 @@ async def select_table(q: Q, warning: str = ''):
             ui.buttons([ui.button(name='#import', label='Import Data', primary=True)])
         ])
 
-# def get_framework_choices(benchmark_args,results_df):
-#     if benchmark_args:
-#         choices = [ui.choice(i, i) for i in list(
-#             results_df[results_df['task'].isin(benchmark_args)]['framework'].unique())]
-#     else:
-#         choices = [ui.choice(i, i) for i in list(
-#             results_df['framework'].unique())]
-    
-#     return ui.dropdown(name='frameworks', label='Frameworks',
-#                 values=[], required=True, choices=choices)
-
-
-# Selecting the Parameters to Parse the CSV and Create Comparison
+# selecting the parameters to parse the results csv by
 async def parameters_selection_menu(q: Q, warning: str = ''):
     # Error handling
     if not q.args.results_file and not q.app.results_file:
@@ -189,8 +175,6 @@ async def parameters_selection_menu(q: Q, warning: str = ''):
         # await import_menu(q, 'This file does not match the results.csv format. Please upload another file')
         return
 
-
-
     # choices based on the results csv uploaded
     framework_choices = [ui.choice(i, i) for i in list(q.app.results_df['framework'].unique())]
     constraint_choices = [ui.choice(i, i) for i in list(q.app.results_df['constraint'].unique())]
@@ -210,9 +194,14 @@ async def parameters_selection_menu(q: Q, warning: str = ''):
                     value=q.app.mode, required=True, choices=mode_choices),
         ui.dropdown(name='problem_type', label='Problem Type', placeholder='Example: binary',
                     value=q.app.problem_type, required=True, choices=problem_choices),
+        ui.textbox(name='te_cardinality_threshold',
+                   label='TE Cardinality Threshold', placeholder ='Example: 5000',
+                   value= q.app.te_cardinality_threshold),
+        ui.textbox(name='max_rows',
+                   label='Max Rows', placeholder='Example: 5000',
+                   value=q.app.max_rows),
         ui.buttons([ui.button(name='next_generate_report', label='Next', primary=True)])
     ])
-
 
 # this where we will start the benchmark report and check that at least two frameworks have been selected
 async def start_report(q: Q):
@@ -231,9 +220,7 @@ async def start_report(q: Q):
     # we would be calling to show the matplotlib plots
     await show_plots(q)
 
-
-# Table from Pandas dataframe
-# this is used in leader board to show the table 
+# func to generate a table from pandas df
 def table_from_df(df: pd.DataFrame, table_name: str):
     # Columns for the table
     columns = [ui.table_column(
@@ -255,19 +242,30 @@ def table_from_df(df: pd.DataFrame, table_name: str):
              height='100%')
     return table
 
+# create the metadata filter 
+def metadata_filter(results_df, te_cardinality_threshold=None, max_rows=None):
+    metadata = load_dataset_metadata(results_df)
+    metadata_df = render_metadata(metadata)
+    tmp_md = metadata_df[metadata_df['max_cardinality'] < te_cardinality_threshold]
+    tmp_md = tmp_md[tmp_md['nrows'] < max_rows]
+    metadata_task_filter = tmp_md['task'].tolist()
+    return metadata_task_filter
+
 # create the benchmark df and the results csv 
-def create_benchmark_df(results_df, framework, constraint, mode, problem_type):
+def create_benchmark_df(results_df, framework, constraint, mode, problem_type, metadata_filter):
+    # filter the results csv by framework, constraint, mode
     benchmark_df = results_df[(results_df['framework'] == framework) & (
         results_df['constraint'] == constraint) & (results_df['mode'] == mode)]
-    # benchmark_df_csv_path = f"/Users/vhernandez/wave-apps/wave-h2o-automl/tmp/results_{framework}_{date.today()}.csv"
-    # benchmark_df
+    # filter by problem type
     if problem_type == 'binary':
         benchmark_df = benchmark_df[benchmark_df['metric'] == 'auc']
     elif problem_type == 'multiclass':
         benchmark_df = benchmark_df[benchmark_df['metric'] == 'logloss']
     else:
         benchmark_df = benchmark_df[benchmark_df['metric'] == 'rmse']
-
+    # filter by metadata
+    benchmark_df = benchmark_df[benchmark_df['id'].isin(metadata_filter)]
+    # save the benchmark_df
     benchmark_df_csv_path = f"{cur_dir}/tmp/results_{framework}_{date.today()}.csv"
     benchmark_df.to_csv(benchmark_df_csv_path)
     return benchmark_df_csv_path
@@ -284,16 +282,14 @@ def results_as_df(results_dict, row_filter=None):
                       if res is not None])
 
 # definitions dictionary for matplotlib plots creation
-
-
-def create_definitions_dict(frameworks, results_df, constraint, mode, problem_type):
+def create_definitions_dict(frameworks, results_df, constraint, mode, problem_type, metadata_filter):
     definitions = dict()
     # assign the reference framework to the first framework in list
     ref_framework = frameworks[0]
     for framework in frameworks:
         # generate the results.csv path
         benchmark_csv_path = create_benchmark_df(
-            results_df, framework, constraint, mode, problem_type)
+            results_df, framework, constraint, mode, problem_type, metadata_filter)
         # check if the current framework is the reference framework
         if framework == ref_framework:
             # include ref = true in dict
@@ -305,7 +301,7 @@ def create_definitions_dict(frameworks, results_df, constraint, mode, problem_ty
                 framework=framework, results_files=[benchmark_csv_path])
     return definitions                     
 
-
+# creating the scores for the table
 def render_score_ms(col, results):
     df = results.dropna(subset=['id']).groupby(['type', 'task', 'framework']).agg(
         mean_score =(col, "mean"),
@@ -319,7 +315,7 @@ def render_score_ms(col, results):
 # Show the plots! 
 async def show_plots(q: Q):
 
-    # if the reference framework is selected 
+    # check to make sure there are frameworks selected
     if q.args.frameworks:
 
         # items to be defined in a function or config file 
@@ -332,9 +328,14 @@ async def show_plots(q: Q):
         title_extra = ""
         output_dir = "./tmp"
 
-        # create the definitions dict 
-        definitions = create_definitions_dict(frameworks = q.args.frameworks, results_df = q.app.results_df, constraint = q.args.constraint, mode =q.args.mode, problem_type = q.args.problem_type )
+        # create the metadata filter 
+        metadata_task_filter = metadata_filter(results_df=q.app.results_df, te_cardinality_threshold=int(q.args.te_cardinality_threshold), max_rows= int(q.args.max_rows))
 
+        print(metadata_task_filter)
+        # create the definitions dict 
+        definitions = create_definitions_dict(frameworks = q.args.frameworks, results_df = q.app.results_df, 
+                                              constraint=q.args.constraint, mode=q.args.mode, 
+                                              problem_type=q.args.problem_type, metadata_filter=metadata_task_filter)
 
         # runs is equivalent to definitions dict because we arent excluding anything 
         runs = definitions

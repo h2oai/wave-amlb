@@ -15,6 +15,10 @@ def dataset_metadata(task_id):
     nrows = int(dq['NumberOfInstances'])
     nfeatures = int(dq['NumberOfFeatures'])
     nclasses = int(dq['NumberOfClasses'])
+    if ((dq['NumberOfSymbolicFeatures']>0) & ('MaxNominalAttDistinctValues' not in dq.keys())):
+        max_cardinality = 999999
+    else:
+        max_cardinality = int(dq['MaxNominalAttDistinctValues'])
     # class_entropy = float(dq['ClassEntropy'])
     class_imbalance = float(dq['MajorityClassPercentage'])/float(dq['MinorityClassPercentage'])
     task_type = ('regression' if nclasses == 0 
@@ -30,6 +34,7 @@ def dataset_metadata(task_id):
         nrows=nrows,
         nfeatures=nfeatures,
         nclasses=nclasses,
+        max_cardinality=max_cardinality,
         # class_entropy=class_entropy,
         class_imbalance=class_imbalance,
     )
@@ -48,7 +53,7 @@ def load_dataset_metadata(results):
 def render_metadata(metadata, filename='metadata.csv'):
     df = pd.DataFrame([m.__dict__ for m in metadata.values()], 
                       columns=['task', 'name', 'type', 'dataset', 
-                               'nrows', 'nfeatures', 'nclasses',
+                               'nrows', 'nfeatures', 'nclasses','max_cardinality',
                                'class_imbalance'])
     df.sort_values(by='name', inplace=True)
     if filename:
