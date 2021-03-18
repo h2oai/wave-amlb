@@ -59,7 +59,7 @@ def draw_pointplot(df, x, y, hue=None,
                 labels = legend_labels
             else:
                 labels = map(legend_labels, labels)
-        axes.legend(handles, labels, loc=legend_loc, title=legend_title)
+        axes.legend(handles, labels, loc=legend_loc, title=legend_title, fontsize = 'xx-small')
         set_labels(axes, title=title, xlabel=xlabel, ylabel=ylabel, x_labels=x_labels,
                    x_tick_params=dict(labelrotation=90))
         return bar_fig

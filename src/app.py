@@ -188,7 +188,7 @@ async def parameters_selection_menu(q: Q, warning: str = ''):
                     values=[], required=True, choices=framework_choices),
         # ui.dropdown(name='ref_framework', label='Reference Framework', placeholder='Example: H2OAutoML',
         #             value=q.app.ref_framework, required=True, choices=framework_choices),
-        ui.dropdown(name='constraint', label='Constraint', placeholder='Example: 18hc',
+        ui.dropdown(name='constraint', label='Constraint', placeholder='Example: 1h8c',
                     value=q.app.constraint, required=True, choices=constraint_choices),
         ui.dropdown(name='mode', label='Mode', placeholder='Example: aws',
                     value=q.app.mode, required=True, choices=mode_choices),
@@ -197,8 +197,8 @@ async def parameters_selection_menu(q: Q, warning: str = ''):
         ui.separator(label='OpenML Datasets Filters'),
         ui.textbox(name='max_cardinality_lower_bound', label='Max Cardinality Lower Bound', value='0'),
         ui.textbox(name='max_cardinality_upper_bound', label='Max Cardinality Upper Bound', value='inf'),
-        ui.textbox(name='max_rows_lower_bound', label='Max Rows Lower Bound', value='1'),
-        ui.textbox(name='max_rows_upper_bound', label='Max Rows Upper Bound', value='inf'),
+        ui.textbox(name='max_rows_lower_bound', label='Rows Lower Bound', value='1'),
+        ui.textbox(name='max_rows_upper_bound', label='Rows Upper Bound', value='inf'),
         ui.buttons([ui.button(name='next_generate_report', label='Next', primary=True)])
     ])
 
@@ -407,7 +407,7 @@ async def show_plots(q: Q):
                                     hue_sort_by=frameworks_sort_key,
                                     join='none', marker='hline_xspaced', ci=95, 
                                     title=f"Scores ({binary_score_label}) on {results_group} binary classification problems{title_extra}",
-                                    legend_loc='best',
+                                    legend_loc='lower center',
                                     legend_labels=frameworks_labels,
                                     )
         if 'multiclass' in problem_types:
@@ -512,7 +512,7 @@ def get_image_from_matplotlib(matplotlib_obj):
     buffer = io.BytesIO()
     # buffer is an in-memory object that can be used wherever a file is used. 
     matplotlib_obj.tight_layout()
-    matplotlib_obj.savefig(buffer, format="png")
+    matplotlib_obj.savefig(buffer, format="png", bbox_inches='tight')
     buffer.seek(0)
     return base64.b64encode(buffer.read()).decode("utf-8")
 
