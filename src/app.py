@@ -252,7 +252,7 @@ def table_from_df(df: pd.DataFrame, table_name: str):
              columns=columns,
              multiple=True, # Hack for not navigating alway when doing 1 click on table
              downloadable  = True, 
-             height='100%')
+             height='500px')
     return table
 
 # create the benchmark df and the results csv 
