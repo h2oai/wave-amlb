@@ -326,6 +326,7 @@ def benchmark_report_table(col, results, metadata):
     metadata_df['name'] = metadata_df['name'].str.lower()
     # merge the df rows, features, max cardinality
     df = pd.merge(df, metadata_df, left_on= 'task',right_on='name', how = 'left')
+    df.drop(columns='name',inplace = True)
     return df
 
 # Show the plots! 
