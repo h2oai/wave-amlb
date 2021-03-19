@@ -234,8 +234,7 @@ def table_from_df(df: pd.DataFrame, table_name: str):
         sortable=True,  # Make column sortable
         filterable=True,  # Make column filterable
         searchable=False,  # Make column searchable
-        data_type= (np.where(re.search(r'mean|std|nfolds', x),
-                           'number', 'string')).item()
+        data_type= (np.where(re.search(r'mean|std|folds|rows|features|cardinality', x), 'number', 'string')).item()
     ) for x in df.columns.values]
     # Rows for the table
     rows = [ui.table_row(name=str(i), cells=[str(cell) for cell in row]) for i, row in df.iterrows()] 
@@ -310,15 +309,23 @@ def create_definitions_dict(frameworks, results_df, constraint, mode, problem_ty
                 framework=framework, results_files=[benchmark_csv_path])
     return definitions                     
 
-# creating the scores for the table
-def render_score_ms(col, results):
+# creating the dataframe that contains info for benchmark report table
+def benchmark_report_table(col, results, metadata):
+    # score data
     df = results.dropna(subset=['id']).groupby(['type', 'task', 'framework']).agg(
         mean_score =(col, "mean"),
         std_deviation =(col, "std"),
-        nfolds = ('fold',"size")
+        folds = ('fold',"size")
     ).reset_index()
     df['mean_score'] = df['mean_score'].round(5)
     df['std_deviation'] = df['std_deviation'].round(5)
+    # metadata df
+    metadata_df = render_metadata(metadata)
+    metadata_df = metadata_df[['name', 'nrows', 'nfeatures', 'max_cardinality']]
+    metadata_df.rename(columns={'nrows':'rows','nfeatures':'features'}, inplace = True)
+    metadata_df['name'] = metadata_df['name'].str.lower()
+    # merge the df rows, features, max cardinality
+    df = pd.merge(df, metadata_df, left_on= 'task',right_on='name', how = 'left')
     return df
 
 # Show the plots! 
@@ -379,15 +386,14 @@ async def show_plots(q: Q):
             results_as_df(runs_results, row_filter)
         ])
 
-
         # add the problem type
         metadata = reduce(lambda l, r: {**r, **l},
                         [res.metadata
                         for res in list(ref_results.values())+list(runs_results.values())
                         if res is not None],
                         {})
-        problem_types = pd.DataFrame(m.__dict__ for m in metadata.values())[
-            'type'].unique().tolist()
+    
+        problem_types = pd.DataFrame(m.__dict__ for m in metadata.values())['type'].unique().tolist()
         
         if 'binary' in problem_types:
             fig_stripplot = draw_score_stripplot('score',
@@ -467,16 +473,15 @@ async def show_plots(q: Q):
                                     )       
 
         # # show metadata table 
-        # metadata_df = render_metadata(metadata)
-        score_info_df = render_score_ms('score', all_res)
+        benchmark_metadata_df = benchmark_report_table('score', all_res, metadata)
+
+        # merge the score info df with the columns you want to add for the metadata 
 
         # create benchmark table
         benchmark_metadata_table = table_from_df(
-            score_info_df, 'benchmark_metadata_table')
+            benchmark_metadata_df, 'benchmark_metadata_table')
 
         #remove the progress bar
-        # q.page['main'] = ui.form_card(box=app_config.main_box, items=[
-        #             ui.text_xl('Benchmark Comparison Report')])
         q.page['main'] = ui.form_card(box=app_config.plot1_box, items=[
                     ui.text_xl('Benchmark Comparison Report'),
             benchmark_metadata_table])
