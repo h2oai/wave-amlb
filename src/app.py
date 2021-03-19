@@ -312,7 +312,7 @@ def create_definitions_dict(frameworks, results_df, constraint, mode, problem_ty
 # creating the dataframe that contains info for benchmark report table
 def benchmark_report_table(col, results, metadata):
     # score data
-    df = results.dropna(subset=['id']).groupby(['type', 'task', 'framework']).agg(
+    df = results.dropna(subset=['id']).groupby(['task', 'framework']).agg(
         mean_score =(col, "mean"),
         std_deviation =(col, "std"),
         folds = ('fold',"size")
@@ -484,7 +484,7 @@ async def show_plots(q: Q):
 
         #remove the progress bar
         q.page['main'] = ui.form_card(box=app_config.plot1_box, items=[
-                    ui.text_xl('Benchmark Comparison Report'),
+            ui.text_xl(f'Benchmark Comparison Report: {q.args.problem_type}'),
             benchmark_metadata_table])
 
 
