@@ -1,5 +1,6 @@
 import openml as oml
 import pandas as pd
+import numpy as np
 
 from .util import Namespace
 
@@ -15,10 +16,16 @@ def dataset_metadata(task_id):
     nrows = int(dq['NumberOfInstances'])
     nfeatures = int(dq['NumberOfFeatures'])
     nclasses = int(dq['NumberOfClasses'])
-    if ((dq['NumberOfSymbolicFeatures']>0) & ('MaxNominalAttDistinctValues' not in dq.keys())):
+    # if there catcols, but the 'MaxNominalAttDistinctValues' is undefined, set to high number
+    # elif: 'MaxNominalAttDistinctValues' is not available or is nan, set to 0
+    # else: 'MaxNominalAttDistinctValues' is avaialble, use it
+    if ((dq['NumberOfSymbolicFeatures']>0) and ('MaxNominalAttDistinctValues' not in dq.keys())):
         max_cardinality = 999999
+    elif (('MaxNominalAttDistinctValues' not in dq.keys()) or np.isnan(dq['MaxNominalAttDistinctValues'])):
+        max_cardinality = 0
     else:
         max_cardinality = int(dq['MaxNominalAttDistinctValues'])
+
     # class_entropy = float(dq['ClassEntropy'])
     class_imbalance = float(dq['MajorityClassPercentage'])/float(dq['MinorityClassPercentage'])
     task_type = ('regression' if nclasses == 0 
