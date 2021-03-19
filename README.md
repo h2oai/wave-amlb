@@ -80,7 +80,7 @@ cd wave
 
 ```bash
 $ git clone https://github.com/h2oai/wave-amlb
-$ cd wave-h2o-automl
+$ cd wave-amlb
 $ make setup
 $ source venv/bin/activate
 ```
