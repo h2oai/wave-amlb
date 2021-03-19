@@ -195,10 +195,16 @@ async def parameters_selection_menu(q: Q, warning: str = ''):
         ui.dropdown(name='problem_type', label='Problem Type', placeholder='Example: binary',
                     value=q.app.problem_type, required=True, choices=problem_choices),
         ui.separator(label='OpenML Datasets Filters'),
+        ui.textbox(name='max_rows_lower_bound',
+                   label='Rows Lower Bound', value='1'),
+        ui.textbox(name='max_rows_upper_bound',
+                   label='Rows Upper Bound', value='inf'),
+        ui.textbox(name='max_features_lower_bound',
+                   label='Features Lower Bound', value='1'),
+        ui.textbox(name='max_features_upper_bound',
+                   label='Features Upper Bound', value='inf'),
         ui.textbox(name='max_cardinality_lower_bound', label='Max Cardinality Lower Bound', value='0'),
         ui.textbox(name='max_cardinality_upper_bound', label='Max Cardinality Upper Bound', value='inf'),
-        ui.textbox(name='max_rows_lower_bound', label='Rows Lower Bound', value='1'),
-        ui.textbox(name='max_rows_upper_bound', label='Rows Upper Bound', value='inf'),
         ui.buttons([ui.button(name='next_generate_report', label='Next', primary=True)])
     ])
 
@@ -241,17 +247,16 @@ def table_from_df(df: pd.DataFrame, table_name: str):
              height='500px')
     return table
 
-# create the metadata filter 
-# max_cardinality_lower_bound, max_cardinality_upper_bound, max_rows_lower_bound, max_rows_upper_bound
-
-
-def metadata_filter(results_df, max_cardinality_lower_bound, max_cardinality_upper_bound, max_rows_lower_bound, max_rows_upper_bound):
+# create the metadata filter for openml datasets
+def metadata_filter(results_df, max_cardinality_lower_bound, max_cardinality_upper_bound, max_rows_lower_bound, max_rows_upper_bound, max_features_lower_bound, max_features_upper_bound):
     metadata = load_dataset_metadata(results_df)
     metadata_df = render_metadata(metadata)
     # max cardinality filter
     tmp_md = metadata_df[(metadata_df['max_cardinality'] > max_cardinality_lower_bound) & (metadata_df['max_cardinality'] < max_cardinality_upper_bound)]
     # max rows filter
     tmp_md = tmp_md[(tmp_md['nrows'] > max_rows_lower_bound) & (tmp_md['nrows'] < max_rows_upper_bound)]
+    # max features filter 
+    tmp_md = tmp_md[(tmp_md['nfeatures'] > max_features_lower_bound) & (tmp_md['nfeatures'] < max_features_upper_bound)]
     metadata_task_filter = tmp_md['task'].tolist()
     return metadata_task_filter
 
@@ -336,9 +341,8 @@ async def show_plots(q: Q):
         # create the metadata filter 
         metadata_task_filter = metadata_filter(results_df=q.app.results_df, max_cardinality_lower_bound=int(q.args.max_cardinality_lower_bound), 
         max_cardinality_upper_bound=float(q.args.max_cardinality_upper_bound), max_rows_lower_bound=int(q.args.max_rows_lower_bound), 
-        max_rows_upper_bound=float(q.args.max_rows_upper_bound))
+        max_rows_upper_bound=float(q.args.max_rows_upper_bound), max_features_lower_bound=int(q.args.max_features_lower_bound), max_features_upper_bound=float(q.args.max_features_upper_bound))
 
-        print(metadata_task_filter)
         # create the definitions dict 
         definitions = create_definitions_dict(frameworks = q.args.frameworks, results_df = q.app.results_df, 
                                               constraint=q.args.constraint, mode=q.args.mode, 
