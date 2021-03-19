@@ -329,13 +329,7 @@ def benchmark_report_table(col, results, metadata):
     df.drop(columns='name',inplace = True)
     return df
 
-    # sorting by result
-    def tasks_sort_by(df):
-        return [score_summary.loc[score_summary.index.get_level_values('task') == row['task']].iloc[0].at[reference_framework()] for _, row in df.iterrows()]
 
-    # grab the reference framework
-    def reference_framework(definitions_dict=definitions):
-        return next(iter(definitions))
 
 # Show the plots! 
 async def show_plots(q: Q):
@@ -403,6 +397,17 @@ async def show_plots(q: Q):
                         {})
     
         problem_types = pd.DataFrame(m.__dict__ for m in metadata.values())['type'].unique().tolist()
+
+        score_summary = render_summary('score', results=all_res)
+        
+        # grab the reference framework
+        def tasks_sort_by_score(df):
+            ref_framework_name = reference_framework()
+            return [score_summary.loc[score_summary.index.get_level_values('task') == row['task']].iloc[0].at[ref_framework_name] for _, row in df.iterrows()]
+
+        def reference_framework(definitions_dict=definitions):
+            return next(iter(definitions))
+
         
         if 'binary' in problem_types:
             fig_stripplot = draw_score_stripplot('score',
@@ -410,7 +415,7 @@ async def show_plots(q: Q):
                                     type_filter='binary',
                                     metadata=metadata,
                                     xlabel=binary_score_label,
-                                    y_sort_by=tasks_sort_by(),
+                                    y_sort_by=tasks_sort_by_score,
                                     hue_sort_by=frameworks_sort_key,
                                     title=f"Scores ({binary_score_label}) on {results_group} binary classification problems{title_extra}",
                                     legend_labels=frameworks_labels,
@@ -420,7 +425,7 @@ async def show_plots(q: Q):
                                     results=all_res,
                                     type_filter='binary', 
                                     metadata=metadata,
-                                    x_sort_by=tasks_sort_by(),
+                                    x_sort_by=tasks_sort_by_score,
                                     ylabel=binary_score_label,
                                     ylim=dict(bottom=.5),
                                     hue_sort_by=frameworks_sort_key,
@@ -481,10 +486,8 @@ async def show_plots(q: Q):
                                     size=(8, 6),
                                     )       
 
-        # # show metadata table 
+        # create data for the benchmark table
         benchmark_metadata_df = benchmark_report_table('score', all_res, metadata)
-
-        # merge the score info df with the columns you want to add for the metadata 
 
         # create benchmark table
         benchmark_metadata_table = table_from_df(
