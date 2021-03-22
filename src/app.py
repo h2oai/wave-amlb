@@ -230,7 +230,7 @@ def table_from_df(df: pd.DataFrame, table_name: str):
         sortable=True,  # Make column sortable
         filterable=True,  # Make column filterable
         searchable=False,  # Make column searchable
-        data_type= (np.where(re.search(r'mean|std|folds|rows|features|cardinality', x), 'number', 'string')).item()
+        data_type= (np.where(re.search(r'mean|std|folds|rows|features|cardinality|imbalance', x), 'number', 'string')).item()
     ) for x in df.columns.values]
     # Rows for the table
     rows = [ui.table_row(name=str(i), cells=[str(cell) for cell in row]) for i, row in df.iterrows()] 
@@ -317,7 +317,8 @@ def benchmark_report_table(col, results, metadata):
     df['std_deviation'] = df['std_deviation'].round(5)
     # metadata df
     metadata_df = render_metadata(metadata)
-    metadata_df = metadata_df[['name', 'nrows', 'nfeatures', 'max_cardinality']]
+    metadata_df = metadata_df[['name', 'nrows', 'nfeatures', 'max_cardinality','class_imbalance']]
+    metadata_df['class_imbalance'] = metadata_df['class_imbalance'].round(5)
     metadata_df.rename(columns={'nrows':'rows','nfeatures':'features'}, inplace = True)
     metadata_df['name'] = metadata_df['name'].str.lower()
     # merge the df rows, features, max cardinality
