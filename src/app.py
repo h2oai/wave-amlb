@@ -325,6 +325,7 @@ def benchmark_report_table(col, results, metadata):
     metadata_df['class_imbalance'] = metadata_df['class_imbalance'].round(5)
     metadata_df.rename(columns={'nrows':'rows','nfeatures':'features'}, inplace = True)
     metadata_df['name'] = metadata_df['name'].str.lower()
+    metadata_df['name'].replace({'numerai28.6':'numerai28_6'},inplace = True)
     # merge the df rows, features, max cardinality
     df = pd.merge(df, metadata_df, left_on= 'task',right_on='name', how = 'left')
     df.drop(columns='name',inplace = True)
