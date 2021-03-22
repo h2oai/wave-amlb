@@ -160,11 +160,15 @@ async def parameters_selection_menu(q: Q, warning: str = ''):
         q.app.results_df = pd.read_csv(local_path)
     
     # if they didn't upload a results csv file send them to import data
-    if not {'framework', 'constraint', 'mode', 'task'}.issubset(q.app.results_df.columns):
+    results_csv_cols = {'id', 'task', 'framework', 'constraint', 'fold', 'result', 'metric',
+                        'mode', 'version', 'params', 'app_version', 'utc', 'duration',
+                        'training_duration', 'predict_duration', 'models_count', 'seed', 'info',
+                        'acc', 'auc', 'balacc', 'logloss', 'mae', 'models',
+                        'models_ensemble_count', 'r2', 'rmse', 'tag'}
+    if not results_csv_cols.issubset(q.app.results_df.columns):
         q.page['meta'] = ui.meta_card(box ='')
         q.page['main'] = ui.markdown_card(box=app_config.main_box, title ='Incorrect Results CSV',
-                                          content='This file does not match the results.csv format. Please upload another file'
-        )
+                                          content='This file does not match the results.csv format. Please upload another file')
         await q.page.save()
         time.sleep(10)
         q.page['meta'].redirect = '#import'
