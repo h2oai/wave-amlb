@@ -92,10 +92,6 @@ References:
 4. On the parameters selection you can select the parameters for which you would like to evaluate your results 
 5. After selecting your parameters, the app will begin to generate a table and visualizations for you to analyze
             """)
-
-
-
-    
     ])
 
     await q.page.save()
@@ -327,6 +323,7 @@ def benchmark_report_table(col, results, metadata):
     # merge the df rows, features, max cardinality
     df = pd.merge(df, metadata_df, left_on= 'task',right_on='name', how = 'left')
     df.drop(columns='name',inplace = True)
+    df = df.astype({'features': 'int64','max_cardinality':'int64'})
     return df
 
 
@@ -361,6 +358,7 @@ async def show_plots(q: Q):
         # runs is equivalent to definitions dict because we arent excluding anything 
         runs = definitions
 
+        # ref results
         ref_results = {name: prepare_results(run['results_files'],
                                     renamings={run['framework']: name},
                                     exclusions=excluded_frameworks,
@@ -369,6 +367,7 @@ async def show_plots(q: Q):
                                     )
             for name, run in runs.items() if runs[name].get('ref', False)}
 
+        # ref results and row filter combined if there are any filters
         all_ref_res = results_as_df(ref_results, row_filter)
 
         # create the run results 
@@ -382,33 +381,34 @@ async def show_plots(q: Q):
                                                 )
                         for name, run in runs.items() if name not in ref_results}
 
-        # create the final all res for plotting 
-
+        # create the final all res for plotting, this has all the results
         all_res = pd.concat([
             all_ref_res,
             results_as_df(runs_results, row_filter)
         ])
 
-        # add the problem type
+        # this is a dict that contains the metadata for all the datasets
         metadata = reduce(lambda l, r: {**r, **l},
                         [res.metadata
                         for res in list(ref_results.values())+list(runs_results.values())
                         if res is not None],
                         {})
-    
-        problem_types = pd.DataFrame(m.__dict__ for m in metadata.values())['type'].unique().tolist()
 
-        score_summary = render_summary('score', results=all_res)
+        # add the problem types
+        problem_types = pd.DataFrame(m.__dict__ for m in metadata.values())['type'].unique().tolist()
         
+        # creates a df of score summary to be used in the sorting function for plots
+        score_summary = render_summary('score', results=all_res)
+
         # grab the reference framework
+        def reference_framework(definitions_dict=definitions):
+            return next(iter(definitions))
+        
+        # create the sorting function for plots
         def tasks_sort_by_score(df):
             ref_framework_name = reference_framework()
             return [score_summary.loc[score_summary.index.get_level_values('task') == row['task']].iloc[0].at[ref_framework_name] for _, row in df.iterrows()]
-
-        def reference_framework(definitions_dict=definitions):
-            return next(iter(definitions))
-
-        
+    
         if 'binary' in problem_types:
             fig_stripplot = draw_score_stripplot('score',
                                     results=all_res.sort_values(by=['framework']),
@@ -441,7 +441,7 @@ async def show_plots(q: Q):
                                     metadata=metadata,
                                     xlabel=multiclass_score_label,
                                     xscale='symlog',
-                                    y_sort_by=tasks_sort_by,
+                                    y_sort_by=tasks_sort_by_score,
                                     hue_sort_by=frameworks_sort_key,
                                     title=f"Scores ({multiclass_score_label}) on {results_group} multi-class classification problems{title_extra}",
                                     legend_labels=frameworks_labels,
@@ -450,7 +450,7 @@ async def show_plots(q: Q):
                                     results=all_res,
                                     type_filter='multiclass',
                                     metadata=metadata,
-                                    x_sort_by=tasks_sort_by,
+                                    x_sort_by=tasks_sort_by_score,
                                     ylabel=multiclass_score_label,
                                     hue_sort_by=frameworks_sort_key,
                                     join='none', marker='hline_xspaced', ci=95,
@@ -465,7 +465,7 @@ async def show_plots(q: Q):
                                     metadata=metadata,
                                     xlabel=regression_score_label,
                                     xscale='symlog',
-                                    y_sort_by=tasks_sort_by,
+                                    y_sort_by=tasks_sort_by_score,
                                     hue_sort_by=frameworks_sort_key,
                                     title=f"Scores ({regression_score_label}) on {results_group} regression problems{title_extra}",
                                     legend_labels=frameworks_labels,
@@ -474,7 +474,7 @@ async def show_plots(q: Q):
                                     results=all_res,
                                     type_filter='regression', 
                                     metadata=metadata,
-                                    x_sort_by=tasks_sort_by,
+                                    x_sort_by=tasks_sort_by_score,
                                     ylabel=regression_score_label,
                                     yscale='symlog',
                                     ylim=dict(top=0.1),
@@ -493,7 +493,7 @@ async def show_plots(q: Q):
         benchmark_metadata_table = table_from_df(
             benchmark_metadata_df, 'benchmark_metadata_table')
 
-        #remove the progress bar
+        # add the plots to the page 
         q.page['main'] = ui.form_card(box=app_config.plot1_box, items=[
             ui.text_xl(f'Benchmark Comparison Report: {q.args.problem_type}'),
             benchmark_metadata_table])
