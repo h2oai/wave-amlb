@@ -251,7 +251,7 @@ def metadata_filter(results_df, max_cardinality_lower_bound, max_cardinality_upp
     metadata = load_dataset_metadata(results_df)
     metadata_df = render_metadata(metadata)
     # max cardinality filter
-    tmp_md = metadata_df[(metadata_df['max_cardinality'] > max_cardinality_lower_bound) & (metadata_df['max_cardinality'] < max_cardinality_upper_bound)]
+    tmp_md = metadata_df[(metadata_df['max_cardinality'] >= max_cardinality_lower_bound) & (metadata_df['max_cardinality'] < max_cardinality_upper_bound)]
     # max rows filter
     tmp_md = tmp_md[(tmp_md['nrows'] > max_rows_lower_bound) & (tmp_md['nrows'] < max_rows_upper_bound)]
     # max features filter 

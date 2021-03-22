@@ -6,7 +6,6 @@ from .util import Namespace
 
 
 def dataset_metadata(task_id):
-    # print(f"loading {task_id}")
     tid = int(task_id.split("/")[2]) if task_id.startswith('openml.org') else int(task_id)
     task = oml.tasks.get_task(task_id=tid, download_data=False)
     dataset = oml.datasets.get_dataset(task.dataset_id, download_data=False)
@@ -22,6 +21,8 @@ def dataset_metadata(task_id):
     if ((dq['NumberOfSymbolicFeatures']>0) and ('MaxNominalAttDistinctValues' not in dq.keys())):
         max_cardinality = 999999
     elif (('MaxNominalAttDistinctValues' not in dq.keys()) or np.isnan(dq['MaxNominalAttDistinctValues'])):
+        max_cardinality = 0
+    elif ((dq['NumberOfClasses'] > 0) and (dq['NumberOfSymbolicFeatures'] == 1)):
         max_cardinality = 0
     else:
         max_cardinality = int(dq['MaxNominalAttDistinctValues'])
