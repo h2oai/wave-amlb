@@ -326,9 +326,12 @@ def benchmark_report_table(col, results, metadata, problem_type):
     metadata_df = render_metadata(metadata)
     if problem_type == 'regression':
         metadata_df = metadata_df[['name', 'nrows', 'nfeatures', 'max_cardinality']]
-    else:
+    elif problem_type == 'multiclass':
         metadata_df = metadata_df[['name', 'nrows', 'nfeatures', 'max_cardinality','nclasses','class_imbalance']]
         metadata_df.rename(columns={'nclasses':'classes'}, inplace = True)
+        metadata_df['class_imbalance'] = metadata_df['class_imbalance'].round(5)
+    else:
+        metadata_df = metadata_df[[ 'name', 'nrows', 'nfeatures', 'max_cardinality','class_imbalance']]
         metadata_df['class_imbalance'] = metadata_df['class_imbalance'].round(5)
     metadata_df.rename(columns={'nrows':'rows','nfeatures':'features'}, inplace = True)
     metadata_df['name'] = metadata_df['name'].str.lower()
@@ -500,8 +503,7 @@ async def show_plots(q: Q):
         benchmark_metadata_df = benchmark_report_table('score', all_res, metadata, q.args.problem_type)
 
         # create benchmark table
-        benchmark_metadata_table = table_from_df(
-            benchmark_metadata_df, 'benchmark_metadata_table')
+        benchmark_metadata_table = table_from_df(benchmark_metadata_df, 'benchmark_metadata_table')
 
         # add the plots to the page 
         q.page['main'] = ui.form_card(box=app_config.plot1_box, items=[
