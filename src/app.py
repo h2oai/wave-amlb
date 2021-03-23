@@ -318,7 +318,8 @@ def benchmark_report_table(col, results, metadata, problem_type):
     df = results.dropna(subset=['id']).groupby(['task', 'framework']).agg(
         mean_score =(col, "mean"),
         std_deviation =(col, "std"),
-        folds = ('fold',"size")
+        folds = ('fold',"size"),
+        models_count =('models_count',"sum")
     ).reset_index()
     df['mean_score'] = df['mean_score'].round(5)
     df['std_deviation'] = df['std_deviation'].round(5)
@@ -339,7 +340,7 @@ def benchmark_report_table(col, results, metadata, problem_type):
     # merge the df rows, features, max cardinality
     df = pd.merge(df, metadata_df, left_on= 'task',right_on='name', how = 'left')
     df.drop(columns='name',inplace = True)
-    df = df.astype({'features': 'int64','max_cardinality':'int64'})
+    df = df.astype({'features': 'int64','max_cardinality':'int64','models_count':'int64'})
     return df
 
 # Show the plots! 
