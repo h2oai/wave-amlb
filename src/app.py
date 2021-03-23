@@ -259,10 +259,10 @@ def metadata_filter(results_df, max_cardinality_lower_bound, max_cardinality_upp
     metadata_task_filter = tmp_md['task'].tolist()
     return metadata_task_filter
 
-# create the benchmark df and the results csv 
-def create_benchmark_df(results_df, framework, constraint, mode, problem_type, metadata_filter):
+# filters the results csv to only given frameworks, constraint, mode, and problem type selected
+def results_filtered(results_df, frameworks, constraint, mode, problem_type):
     # filter the results csv by framework, constraint, mode
-    benchmark_df = results_df[(results_df['framework'] == framework) & (
+    benchmark_df = results_df[(results_df['framework'].isin(frameworks)) & (
         results_df['constraint'] == constraint) & (results_df['mode'] == mode)]
     # filter by problem type
     if problem_type == 'binary':
@@ -271,6 +271,12 @@ def create_benchmark_df(results_df, framework, constraint, mode, problem_type, m
         benchmark_df = benchmark_df[benchmark_df['metric'] == 'logloss']
     else:
         benchmark_df = benchmark_df[benchmark_df['metric'] == 'rmse']
+    return benchmark_df
+
+# create the benchmark df and the results csv 
+def create_benchmark_df(results_df, framework, metadata_filter):
+    # filter the results csv by framework, constraint, mode
+    benchmark_df = results_df[(results_df['framework'] == framework)]
     # filter by metadata
     benchmark_df = benchmark_df[benchmark_df['id'].isin(metadata_filter)]
     # save the benchmark_df
@@ -290,14 +296,13 @@ def results_as_df(results_dict, row_filter=None):
                       if res is not None])
 
 # definitions dictionary for matplotlib plots creation
-def create_definitions_dict(frameworks, results_df, constraint, mode, problem_type, metadata_filter):
+def create_definitions_dict(frameworks, results_df, metadata_filter):
     definitions = dict()
     # assign the reference framework to the first framework in list
     ref_framework = frameworks[0]
     for framework in frameworks:
         # generate the results.csv path
-        benchmark_csv_path = create_benchmark_df(
-            results_df, framework, constraint, mode, problem_type, metadata_filter)
+        benchmark_csv_path = create_benchmark_df(results_df, framework, metadata_filter)
         # check if the current framework is the reference framework
         if framework == ref_framework:
             # include ref = true in dict
@@ -350,16 +355,15 @@ async def show_plots(q: Q):
         title_extra = ""
         output_dir = "./tmp"
 
+        results_filtered_df = results_filtered(results_df=q.app.results_df, frameworks=q.args.frameworks, constraint=q.args.constraint, mode=q.args.mode, problem_type=q.args.problem_type)
         
         # create the metadata filter 
-        metadata_task_filter = metadata_filter(results_df=q.app.results_df, max_cardinality_lower_bound=int(q.args.max_cardinality_lower_bound), 
+        metadata_task_filter = metadata_filter(results_df=results_filtered_df, max_cardinality_lower_bound=int(q.args.max_cardinality_lower_bound),
         max_cardinality_upper_bound=float(q.args.max_cardinality_upper_bound), max_rows_lower_bound=int(q.args.max_rows_lower_bound), 
         max_rows_upper_bound=float(q.args.max_rows_upper_bound), max_features_lower_bound=int(q.args.max_features_lower_bound), max_features_upper_bound=float(q.args.max_features_upper_bound))
 
         # create the definitions dict 
-        definitions = create_definitions_dict(frameworks = q.args.frameworks, results_df = q.app.results_df, 
-                                              constraint=q.args.constraint, mode=q.args.mode, 
-                                              problem_type=q.args.problem_type, metadata_filter=metadata_task_filter)
+        definitions = create_definitions_dict(frameworks=q.args.frameworks, results_df=results_filtered_df, metadata_filter=metadata_task_filter)
 
         # runs is equivalent to definitions dict because we arent excluding anything 
         runs = definitions
