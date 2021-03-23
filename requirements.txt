@@ -6,3 +6,4 @@ seaborn==0.10.0
 openml
 tabulate
 ipython
+jinga2

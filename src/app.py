@@ -92,10 +92,6 @@ References:
 4. On the parameters selection you can select the parameters for which you would like to evaluate your results 
 5. After selecting your parameters, the app will begin to generate a table and visualizations for you to analyze
             """)
-
-
-
-    
     ])
 
     await q.page.save()
@@ -164,11 +160,15 @@ async def parameters_selection_menu(q: Q, warning: str = ''):
         q.app.results_df = pd.read_csv(local_path)
     
     # if they didn't upload a results csv file send them to import data
-    if not {'framework', 'constraint', 'mode', 'task'}.issubset(q.app.results_df.columns):
+    results_csv_cols = {'id', 'task', 'framework', 'constraint', 'fold', 'result', 'metric',
+                        'mode', 'version', 'params', 'app_version', 'utc', 'duration',
+                        'training_duration', 'predict_duration', 'models_count', 'seed', 'info',
+                        'acc', 'auc', 'balacc', 'logloss', 'mae', 'models',
+                        'models_ensemble_count', 'r2', 'rmse', 'tag'}
+    if not results_csv_cols.issubset(q.app.results_df.columns):
         q.page['meta'] = ui.meta_card(box ='')
         q.page['main'] = ui.markdown_card(box=app_config.main_box, title ='Incorrect Results CSV',
-                                          content='This file does not match the results.csv format. Please upload another file'
-        )
+                                          content='This file does not match the results.csv format. Please upload another file')
         await q.page.save()
         time.sleep(10)
         q.page['meta'].redirect = '#import'
@@ -234,7 +234,7 @@ def table_from_df(df: pd.DataFrame, table_name: str):
         sortable=True,  # Make column sortable
         filterable=True,  # Make column filterable
         searchable=False,  # Make column searchable
-        data_type= (np.where(re.search(r'mean|std|folds|rows|features|cardinality', x), 'number', 'string')).item()
+        data_type= (np.where(re.search(r'mean|std|folds|rows|features|cardinality|imbalance', x), 'number', 'string')).item()
     ) for x in df.columns.values]
     # Rows for the table
     rows = [ui.table_row(name=str(i), cells=[str(cell) for cell in row]) for i, row in df.iterrows()] 
@@ -251,7 +251,7 @@ def metadata_filter(results_df, max_cardinality_lower_bound, max_cardinality_upp
     metadata = load_dataset_metadata(results_df)
     metadata_df = render_metadata(metadata)
     # max cardinality filter
-    tmp_md = metadata_df[(metadata_df['max_cardinality'] > max_cardinality_lower_bound) & (metadata_df['max_cardinality'] < max_cardinality_upper_bound)]
+    tmp_md = metadata_df[(metadata_df['max_cardinality'] >= max_cardinality_lower_bound) & (metadata_df['max_cardinality'] < max_cardinality_upper_bound)]
     # max rows filter
     tmp_md = tmp_md[(tmp_md['nrows'] > max_rows_lower_bound) & (tmp_md['nrows'] < max_rows_upper_bound)]
     # max features filter 
@@ -321,13 +321,18 @@ def benchmark_report_table(col, results, metadata):
     df['std_deviation'] = df['std_deviation'].round(5)
     # metadata df
     metadata_df = render_metadata(metadata)
-    metadata_df = metadata_df[['name', 'nrows', 'nfeatures', 'max_cardinality']]
+    metadata_df = metadata_df[['name', 'nrows', 'nfeatures', 'max_cardinality','class_imbalance']]
+    metadata_df['class_imbalance'] = metadata_df['class_imbalance'].round(5)
     metadata_df.rename(columns={'nrows':'rows','nfeatures':'features'}, inplace = True)
     metadata_df['name'] = metadata_df['name'].str.lower()
+    metadata_df['name'].replace({'numerai28.6':'numerai28_6'},inplace = True)
     # merge the df rows, features, max cardinality
     df = pd.merge(df, metadata_df, left_on= 'task',right_on='name', how = 'left')
     df.drop(columns='name',inplace = True)
+    df = df.astype({'features': 'int64','max_cardinality':'int64'})
     return df
+
+
 
 # Show the plots! 
 async def show_plots(q: Q):
@@ -359,6 +364,7 @@ async def show_plots(q: Q):
         # runs is equivalent to definitions dict because we arent excluding anything 
         runs = definitions
 
+        # ref results
         ref_results = {name: prepare_results(run['results_files'],
                                     renamings={run['framework']: name},
                                     exclusions=excluded_frameworks,
@@ -367,6 +373,7 @@ async def show_plots(q: Q):
                                     )
             for name, run in runs.items() if runs[name].get('ref', False)}
 
+        # ref results and row filter combined if there are any filters
         all_ref_res = results_as_df(ref_results, row_filter)
 
         # create the run results 
@@ -380,29 +387,41 @@ async def show_plots(q: Q):
                                                 )
                         for name, run in runs.items() if name not in ref_results}
 
-        # create the final all res for plotting 
-
+        # create the final all res for plotting, this has all the results
         all_res = pd.concat([
             all_ref_res,
             results_as_df(runs_results, row_filter)
         ])
 
-        # add the problem type
+        # this is a dict that contains the metadata for all the datasets
         metadata = reduce(lambda l, r: {**r, **l},
                         [res.metadata
                         for res in list(ref_results.values())+list(runs_results.values())
                         if res is not None],
                         {})
-    
+
+        # add the problem types
         problem_types = pd.DataFrame(m.__dict__ for m in metadata.values())['type'].unique().tolist()
         
+        # creates a df of score summary to be used in the sorting function for plots
+        score_summary = render_summary('score', results=all_res)
+
+        # grab the reference framework
+        def reference_framework(definitions_dict=definitions):
+            return next(iter(definitions))
+        
+        # create the sorting function for plots
+        def tasks_sort_by_score(df):
+            ref_framework_name = reference_framework()
+            return [score_summary.loc[score_summary.index.get_level_values('task') == row['task']].iloc[0].at[ref_framework_name] for _, row in df.iterrows()]
+    
         if 'binary' in problem_types:
             fig_stripplot = draw_score_stripplot('score',
                                     results=all_res.sort_values(by=['framework']),
                                     type_filter='binary',
                                     metadata=metadata,
                                     xlabel=binary_score_label,
-                                    y_sort_by=tasks_sort_by,
+                                    y_sort_by=tasks_sort_by_score,
                                     hue_sort_by=frameworks_sort_key,
                                     title=f"Scores ({binary_score_label}) on {results_group} binary classification problems{title_extra}",
                                     legend_labels=frameworks_labels,
@@ -412,7 +431,7 @@ async def show_plots(q: Q):
                                     results=all_res,
                                     type_filter='binary', 
                                     metadata=metadata,
-                                    x_sort_by=tasks_sort_by,
+                                    x_sort_by=tasks_sort_by_score,
                                     ylabel=binary_score_label,
                                     ylim=dict(bottom=.5),
                                     hue_sort_by=frameworks_sort_key,
@@ -428,7 +447,7 @@ async def show_plots(q: Q):
                                     metadata=metadata,
                                     xlabel=multiclass_score_label,
                                     xscale='symlog',
-                                    y_sort_by=tasks_sort_by,
+                                    y_sort_by=tasks_sort_by_score,
                                     hue_sort_by=frameworks_sort_key,
                                     title=f"Scores ({multiclass_score_label}) on {results_group} multi-class classification problems{title_extra}",
                                     legend_labels=frameworks_labels,
@@ -437,7 +456,7 @@ async def show_plots(q: Q):
                                     results=all_res,
                                     type_filter='multiclass',
                                     metadata=metadata,
-                                    x_sort_by=tasks_sort_by,
+                                    x_sort_by=tasks_sort_by_score,
                                     ylabel=multiclass_score_label,
                                     hue_sort_by=frameworks_sort_key,
                                     join='none', marker='hline_xspaced', ci=95,
@@ -452,7 +471,7 @@ async def show_plots(q: Q):
                                     metadata=metadata,
                                     xlabel=regression_score_label,
                                     xscale='symlog',
-                                    y_sort_by=tasks_sort_by,
+                                    y_sort_by=tasks_sort_by_score,
                                     hue_sort_by=frameworks_sort_key,
                                     title=f"Scores ({regression_score_label}) on {results_group} regression problems{title_extra}",
                                     legend_labels=frameworks_labels,
@@ -461,7 +480,7 @@ async def show_plots(q: Q):
                                     results=all_res,
                                     type_filter='regression', 
                                     metadata=metadata,
-                                    x_sort_by=tasks_sort_by,
+                                    x_sort_by=tasks_sort_by_score,
                                     ylabel=regression_score_label,
                                     yscale='symlog',
                                     ylim=dict(top=0.1),
@@ -473,16 +492,14 @@ async def show_plots(q: Q):
                                     size=(8, 6),
                                     )       
 
-        # # show metadata table 
+        # create data for the benchmark table
         benchmark_metadata_df = benchmark_report_table('score', all_res, metadata)
-
-        # merge the score info df with the columns you want to add for the metadata 
 
         # create benchmark table
         benchmark_metadata_table = table_from_df(
             benchmark_metadata_df, 'benchmark_metadata_table')
 
-        #remove the progress bar
+        # add the plots to the page 
         q.page['main'] = ui.form_card(box=app_config.plot1_box, items=[
             ui.text_xl(f'Benchmark Comparison Report: {q.args.problem_type}'),
             benchmark_metadata_table])
