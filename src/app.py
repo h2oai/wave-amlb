@@ -180,7 +180,8 @@ async def parameters_selection_menu(q: Q, warning: str = ''):
     constraint_choices = [ui.choice(i, i) for i in list(q.app.results_df['constraint'].unique())]
     mode_choices = [ui.choice(i, i) for i in list(q.app.results_df['mode'].unique())]
     problem_choices = [ui.choice(i, i) for i in ['binary', 'multiclass', 'regression']]
-    
+    plot_sorting_choices = [ui.choice(i, i)for i in ['rows', 'features', 'score']]
+
     q.page['main'] = ui.form_card(box=app_config.main_box, items=[
         ui.text_xl(f'Benchmark Comparison Parameters'),
         ui.message_bar(type='warning', text=warning),
@@ -203,6 +204,9 @@ async def parameters_selection_menu(q: Q, warning: str = ''):
                    label='Features Upper Bound', value='inf'),
         ui.textbox(name='max_cardinality_lower_bound', label='Max Cardinality Lower Bound', value='0'),
         ui.textbox(name='max_cardinality_upper_bound', label='Max Cardinality Upper Bound', value='inf'),
+        ui.separator(label='Visualizations'),
+        ui.dropdown(name='plots_sorting_choice', label='Sorting Visualizations By', placeholder='Example: rows',
+                    value='score', choices=plot_sorting_choices),
         ui.buttons([ui.button(name='next_generate_report', label='Next', primary=True)])
     ])
 
@@ -343,6 +347,11 @@ def benchmark_report_table(col, results, metadata, problem_type):
     df = df.astype({'features': 'int64','max_cardinality':'int64','models_count':'int64'})
     return df
 
+# function to create a variable to store the users sorting func 
+def plot_sorting(sorter):
+    pass
+
+
 # Show the plots! 
 async def show_plots(q: Q):
 
@@ -422,7 +431,8 @@ async def show_plots(q: Q):
         def tasks_sort_by_score(df):
             ref_framework_name = reference_framework()
             return [score_summary.loc[score_summary.index.get_level_values('task') == row['task']].iloc[0].at[ref_framework_name] for _, row in df.iterrows()]
-    
+
+
         if 'binary' in problem_types:
             fig_stripplot = draw_score_stripplot('score',
                                     results=all_res.sort_values(by=['framework']),
