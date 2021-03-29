@@ -439,8 +439,7 @@ async def show_plots(q: Q):
 
         # decide which sorting to use for plots
         user_sort_by_choice = plot_sorting(q.args.plots_sorting_choice)
-
-
+        
         if 'binary' in problem_types:
             fig_stripplot = draw_score_stripplot('score',
                                     results=all_res.sort_values(by=['framework']),
