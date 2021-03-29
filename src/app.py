@@ -349,8 +349,13 @@ def benchmark_report_table(col, results, metadata, problem_type):
 
 # function to create a variable to store the users sorting func 
 def plot_sorting(sorter):
-    pass
-
+    if sorter == 'rows':
+        plot_sorter = 'nrows'
+    elif sorter == 'features':
+        plot_sorter = 'nfeatures'
+    else:
+        plot_sorter = 'tasks_sort_by_score'
+    return plot_sorter
 
 # Show the plots! 
 async def show_plots(q: Q):
@@ -432,6 +437,9 @@ async def show_plots(q: Q):
             ref_framework_name = reference_framework()
             return [score_summary.loc[score_summary.index.get_level_values('task') == row['task']].iloc[0].at[ref_framework_name] for _, row in df.iterrows()]
 
+        # decide which sorting to use for plots
+        user_sort_by_choice = plot_sorting(q.args.plots_sorting_choice)
+
 
         if 'binary' in problem_types:
             fig_stripplot = draw_score_stripplot('score',
@@ -439,7 +447,7 @@ async def show_plots(q: Q):
                                     type_filter='binary',
                                     metadata=metadata,
                                     xlabel=binary_score_label,
-                                    y_sort_by=tasks_sort_by_score,
+                                    y_sort_by=np.where(user_sort_by_choice == 'tasks_sort_by_score', tasks_sort_by_score, user_sort_by_choice),
                                     hue_sort_by=frameworks_sort_key,
                                     title=f"Scores ({binary_score_label}) on {results_group} binary classification problems{title_extra}",
                                     legend_labels=frameworks_labels,
@@ -449,7 +457,7 @@ async def show_plots(q: Q):
                                     results=all_res,
                                     type_filter='binary', 
                                     metadata=metadata,
-                                    x_sort_by=tasks_sort_by_score,
+                                    x_sort_by=np.where(user_sort_by_choice == 'tasks_sort_by_score', tasks_sort_by_score, user_sort_by_choice),
                                     ylabel=binary_score_label,
                                     ylim=dict(bottom=.5),
                                     hue_sort_by=frameworks_sort_key,
