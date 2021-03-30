@@ -180,7 +180,8 @@ async def parameters_selection_menu(q: Q, warning: str = ''):
     constraint_choices = [ui.choice(i, i) for i in list(q.app.results_df['constraint'].unique())]
     mode_choices = [ui.choice(i, i) for i in list(q.app.results_df['mode'].unique())]
     problem_choices = [ui.choice(i, i) for i in ['binary', 'multiclass', 'regression']]
-    
+    plot_sorting_choices = [ui.choice(i, i)for i in ['rows', 'features', 'score']]
+
     q.page['main'] = ui.form_card(box=app_config.main_box, items=[
         ui.text_xl(f'Benchmark Comparison Parameters'),
         ui.message_bar(type='warning', text=warning),
@@ -203,6 +204,9 @@ async def parameters_selection_menu(q: Q, warning: str = ''):
                    label='Features Upper Bound', value='inf'),
         ui.textbox(name='max_cardinality_lower_bound', label='Max Cardinality Lower Bound', value='0'),
         ui.textbox(name='max_cardinality_upper_bound', label='Max Cardinality Upper Bound', value='inf'),
+        ui.separator(label='Visualizations'),
+        ui.dropdown(name='plots_sorting_choice', label='Sorting Visualizations By', placeholder='Example: rows',
+                    value='score', choices=plot_sorting_choices),
         ui.buttons([ui.button(name='next_generate_report', label='Next', primary=True)])
     ])
 
@@ -343,6 +347,16 @@ def benchmark_report_table(col, results, metadata, problem_type):
     df = df.astype({'features': 'int64','max_cardinality':'int64','models_count':'int64'})
     return df
 
+# function to create a variable to store the users sorting func 
+def plot_sorting(sorter):
+    if sorter == 'rows':
+        plot_sorter = 'nrows'
+    elif sorter == 'features':
+        plot_sorter = 'nfeatures'
+    else:
+        plot_sorter = 'tasks_sort_by_score'
+    return plot_sorter
+
 # Show the plots! 
 async def show_plots(q: Q):
 
@@ -422,14 +436,17 @@ async def show_plots(q: Q):
         def tasks_sort_by_score(df):
             ref_framework_name = reference_framework()
             return [score_summary.loc[score_summary.index.get_level_values('task') == row['task']].iloc[0].at[ref_framework_name] for _, row in df.iterrows()]
-    
+
+        # decide which sorting to use for plots
+        user_sort_by_choice = plot_sorting(q.args.plots_sorting_choice)
+
         if 'binary' in problem_types:
             fig_stripplot = draw_score_stripplot('score',
                                     results=all_res.sort_values(by=['framework']),
                                     type_filter='binary',
                                     metadata=metadata,
                                     xlabel=binary_score_label,
-                                    y_sort_by=tasks_sort_by_score,
+                                    y_sort_by=tasks_sort_by_score if user_sort_by_choice == 'tasks_sort_by_score' else user_sort_by_choice,
                                     hue_sort_by=frameworks_sort_key,
                                     title=f"Scores ({binary_score_label}) on {results_group} binary classification problems{title_extra}",
                                     legend_labels=frameworks_labels,
@@ -439,7 +456,7 @@ async def show_plots(q: Q):
                                     results=all_res,
                                     type_filter='binary', 
                                     metadata=metadata,
-                                    x_sort_by=tasks_sort_by_score,
+                                    x_sort_by=tasks_sort_by_score if user_sort_by_choice == 'tasks_sort_by_score' else user_sort_by_choice,
                                     ylabel=binary_score_label,
                                     ylim=dict(bottom=.5),
                                     hue_sort_by=frameworks_sort_key,
@@ -455,7 +472,7 @@ async def show_plots(q: Q):
                                     metadata=metadata,
                                     xlabel=multiclass_score_label,
                                     xscale='symlog',
-                                    y_sort_by=tasks_sort_by_score,
+                                    y_sort_by=tasks_sort_by_score if user_sort_by_choice == 'tasks_sort_by_score' else user_sort_by_choice,
                                     hue_sort_by=frameworks_sort_key,
                                     title=f"Scores ({multiclass_score_label}) on {results_group} multi-class classification problems{title_extra}",
                                     legend_labels=frameworks_labels,
@@ -464,7 +481,7 @@ async def show_plots(q: Q):
                                     results=all_res,
                                     type_filter='multiclass',
                                     metadata=metadata,
-                                    x_sort_by=tasks_sort_by_score,
+                                    x_sort_by=tasks_sort_by_score if user_sort_by_choice == 'tasks_sort_by_score' else user_sort_by_choice,
                                     ylabel=multiclass_score_label,
                                     hue_sort_by=frameworks_sort_key,
                                     join='none', marker='hline_xspaced', ci=95,
@@ -479,7 +496,7 @@ async def show_plots(q: Q):
                                     metadata=metadata,
                                     xlabel=regression_score_label,
                                     xscale='symlog',
-                                    y_sort_by=tasks_sort_by_score,
+                                    y_sort_by=tasks_sort_by_score if user_sort_by_choice == 'tasks_sort_by_score' else user_sort_by_choice,
                                     hue_sort_by=frameworks_sort_key,
                                     title=f"Scores ({regression_score_label}) on {results_group} regression problems{title_extra}",
                                     legend_labels=frameworks_labels,
@@ -488,7 +505,7 @@ async def show_plots(q: Q):
                                     results=all_res,
                                     type_filter='regression', 
                                     metadata=metadata,
-                                    x_sort_by=tasks_sort_by_score,
+                                    x_sort_by=tasks_sort_by_score if user_sort_by_choice == 'tasks_sort_by_score' else user_sort_by_choice,
                                     ylabel=regression_score_label,
                                     yscale='symlog',
                                     ylim=dict(top=0.1),
