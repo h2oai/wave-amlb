@@ -340,6 +340,8 @@ def benchmark_report_table(col, results, metadata, problem_type):
         metadata_df['class_imbalance'] = metadata_df['class_imbalance'].round(5)
     metadata_df.rename(columns={'nrows':'rows','nfeatures':'features'}, inplace = True)
     metadata_df['name'] = metadata_df['name'].str.lower()
+    # no dots in identifiers so yaml dataset names dont have dots they have underscores same with spaces 
+    # to do: replace with generic sanitizer def str_sanitize(s): return re.sub(r"[^\w-]", "_", s)
     metadata_df['name'].replace({'numerai28.6':'numerai28_6'},inplace = True)
     # merge the df rows, features, max cardinality
     df = pd.merge(df, metadata_df, left_on= 'task',right_on='name', how = 'left')
@@ -429,8 +431,9 @@ async def show_plots(q: Q):
         score_summary = render_summary('score', results=all_res)
 
         # grab the reference framework
+        # to do: now we can move it outside because next(iter(definitions)) changed to next(iter(definitions_dict))
         def reference_framework(definitions_dict=definitions):
-            return next(iter(definitions))
+            return next(iter(definitions_dict))
         
         # create the sorting function for plots
         def tasks_sort_by_score(df):
@@ -438,6 +441,7 @@ async def show_plots(q: Q):
             return [score_summary.loc[score_summary.index.get_level_values('task') == row['task']].iloc[0].at[ref_framework_name] for _, row in df.iterrows()]
 
         # decide which sorting to use for plots
+        # to do: might be better to set before the if, or to create a dictionary to add to sort by 
         user_sort_by_choice = plot_sorting(q.args.plots_sorting_choice)
 
         if 'binary' in problem_types:
