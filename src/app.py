@@ -165,7 +165,8 @@ async def parameters_selection_menu(q: Q, warning: str = ''):
                         'training_duration', 'predict_duration', 'models_count', 'seed', 'info',
                         'acc', 'auc', 'balacc', 'logloss', 'mae', 'models',
                         'models_ensemble_count', 'r2', 'rmse', 'tag'}
-    if not results_csv_cols.issubset(q.app.results_df.columns):
+    input_csv_cols = set(q.app.results_df.columns)
+    if not input_csv_cols.issubset(results_csv_cols):
         q.page['meta'] = ui.meta_card(box ='')
         q.page['main'] = ui.markdown_card(box=app_config.main_box, title ='Incorrect Results CSV',
                                           content='This file does not match the results.csv format. Please upload another file')
