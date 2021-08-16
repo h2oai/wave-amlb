@@ -160,7 +160,7 @@ async def parameters_selection_menu(q: Q, warning: str = ''):
         q.app.results_df = pd.read_csv(local_path)
     
     # if they didn't upload a results csv file send them to import data
-    results_csv_cols = {'id', 'task', 'framework', 'constraint', 'fold', 'result', 'metric',
+    results_csv_cols = {'id', 'task', 'framework', 'constraint', 'fold', 'type', 'result', 'metric',
                         'mode', 'version', 'params', 'app_version', 'utc', 'duration',
                         'training_duration', 'predict_duration', 'models_count', 'seed', 'info',
                         'acc', 'auc', 'balacc', 'logloss', 'mae', 'models',
