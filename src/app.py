@@ -324,10 +324,11 @@ def benchmark_report_table(col, results, metadata, problem_type):
         mean_score =(col, "mean"),
         std_deviation =(col, "std"),
         folds = ('fold',"size"),
-        models_count =('models_count',"sum")
+        models_count =('models_count',"mean")
     ).reset_index()
     df['mean_score'] = df['mean_score'].round(5)
     df['std_deviation'] = df['std_deviation'].round(5)
+    df['models_count'] = df['models_count'].round(1)
     # metadata df
     metadata_df = render_metadata(metadata)
     if problem_type == 'regression':
@@ -335,10 +336,10 @@ def benchmark_report_table(col, results, metadata, problem_type):
     elif problem_type == 'multiclass':
         metadata_df = metadata_df[['name', 'nrows', 'nfeatures', 'max_cardinality','nclasses','class_imbalance']]
         metadata_df.rename(columns={'nclasses':'classes'}, inplace = True)
-        metadata_df['class_imbalance'] = metadata_df['class_imbalance'].round(5)
+        metadata_df['class_imbalance'] = metadata_df['class_imbalance'].round(1)
     else:
         metadata_df = metadata_df[[ 'name', 'nrows', 'nfeatures', 'max_cardinality','class_imbalance']]
-        metadata_df['class_imbalance'] = metadata_df['class_imbalance'].round(5)
+        metadata_df['class_imbalance'] = metadata_df['class_imbalance'].round(1)
     metadata_df.rename(columns={'nrows':'rows','nfeatures':'features'}, inplace = True)
     metadata_df['name'] = metadata_df['name'].str.lower()
     # no dots in identifiers so yaml dataset names dont have dots they have underscores same with spaces 
@@ -347,7 +348,7 @@ def benchmark_report_table(col, results, metadata, problem_type):
     # merge the df rows, features, max cardinality
     df = pd.merge(df, metadata_df, left_on= 'task',right_on='name', how = 'left')
     df.drop(columns='name',inplace = True)
-    df = df.astype({'features': 'int64','max_cardinality':'int64','models_count':'int64'})
+    df = df.astype({'features': 'int64','max_cardinality':'int64'})
     return df
 
 # function to create a variable to store the users sorting func 
