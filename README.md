@@ -37,16 +37,19 @@ Follow the instructions [here](https://h2oai.github.io/wave/docs/installation) t
 wave-0.12.0-darwin-amd64.tar.gz
 ```
 
-2. Extract your download
+2. Extract your download:
     - Make sure to run this command in the directory you downloaded the <file>.tar.gz
 ```
 tar -xzf wave-0.12.0-darwin-amd64.tar.gz
 ```
-3. Move it to a convenient location
+    
+3. Move it to a convenient location:
 ```
 mv wave-0.12.0-darwin-amd64 <pathname>/wave
 ```
-4. check your $home/wave directory, the output should look like the following below
+
+4. check your $home/wave directory, the output should look like the following below:
+
 ```
 .
 ├── demo
@@ -56,11 +59,14 @@ mv wave-0.12.0-darwin-amd64 <pathname>/wave
 ├── waved
 └── www
 ```
-5. go to your wave directory 
+    
+5. Go to your wave directory: 
+    
 ```
 cd wave
 ```
-5. start the wave server by running
+    
+6. start the wave server by running:
 ```
 ./waved
 ```
@@ -70,9 +76,11 @@ cd wave
         - general 
         - you'll see a message about wave. select 'allow anyway'
         - attempt to run ./waved again
-6. If step 5 worked you should be able to go to the following [link](http://localhost:10101/)
+
+7. If step 6 worked you should be able to go to the following [link](http://localhost:10101/):
+    
     - it's a spinning circle waiting for contact 
-    - To run any Wave app, you need the Wave server up and running at all times. Your web browser communicates with the 
+    - To run any Wave app, you need the Wave server up and running at all times.
 
 
 
@@ -88,15 +96,18 @@ $ source venv/bin/activate
 ### 3. Run the App
 After you set-up the python environment you can start the app by running
 
-Note! this is in a separate terminal tab then where you ran './waved' command to start the wave server
+Note! this is in a separate terminal tab then where you ran './waved' command to start the wave server:
+    
 ```bash
 wave run src.app
 ```
 
 Note! If you did not activate your virtual environment this will be:
+    
 ```bash
 ./venv/bin/wave run src.app
 ```
 
 ### 4. View the App
+    
 Point your web browser to [localhost:10101](http://localhost:10101)
