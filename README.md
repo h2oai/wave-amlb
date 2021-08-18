@@ -66,11 +66,12 @@ mv wave-0.12.0-darwin-amd64 <pathname>/wave
 cd wave
 ```
     
-6. start the wave server by running:
+6. Start the wave server by running:
+
 ```
 ./waved
 ```
-    - when runninng the command, you may get an issue about "cannot open file because identity of developer cant be verified'
+When runninng the command, you may get an issue about "cannot open file because identity of developer can't be verified:
         - go to system preferences
         - security & privacy
         - general 
