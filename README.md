@@ -16,10 +16,6 @@ Dashboard to compare AutoML frameworks by exploring the results from runs of the
 
 **Allows for Uploading and Using New Data:** Yes
 
-**Detailed Description:** 
-
-TO DO
-
 ## System Requirements 
 1. Python 3.6+
 2. pip3
