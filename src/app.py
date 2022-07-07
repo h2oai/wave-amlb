@@ -271,9 +271,9 @@ def results_filtered(results_df, frameworks, constraint, mode, problem_type):
     if problem_type == 'binary':
         benchmark_df = benchmark_df[benchmark_df['metric'] == 'auc']
     elif problem_type == 'multiclass':
-        benchmark_df = benchmark_df[benchmark_df['metric'] == 'logloss']
+        benchmark_df = benchmark_df[benchmark_df['metric'] == 'neg_logloss']
     else:
-        benchmark_df = benchmark_df[benchmark_df['metric'] == 'rmse']
+        benchmark_df = benchmark_df[benchmark_df['metric'] == 'neg_rmse']
     return benchmark_df
 
 # create the benchmark df and the results csv 
